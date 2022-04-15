@@ -1,0 +1,17 @@
+{
+    "name": "marvel-v4",
+    "version": "4.0.1",
+    "description": "Marvel d.js v 13",
+    "main": "index.js",
+    "start": "node index.js",
+    "dependencies": {
+        "ascii-table": "^0.0.9",
+        "discord-buttons": "^4.0.0-deprecated",
+        "discord-reply": "^0.1.2",
+        "discord.js": "^12.3.5",
+        "ms": "^2.1.3",
+        "node-tesseract-ocr": "^2.2.1",
+        "quick.db": "^7.1.3",
+        "quickmongo": "^3.0.2"
+    }
+}

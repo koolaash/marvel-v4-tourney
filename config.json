@@ -1,0 +1,19 @@
+{
+    "TOKEN": "NzQ2MzY4MzQxNDA4NDgxMzMw.Xz_Trw._37MJignquaOQLkPJg0RYEnrPU0",
+    "DB": "mongodb+srv://shadow:ilaaslm1655@sheddb.pmhuz.mongodb.net/shadow",
+    "pprefix": ",,",
+    "status": "'help | @MARVEL",
+    "type": "LISTENING",
+    "binvite": "https://discord.com/oauth2/authorize?client_id=748583869527097376&permissions=8&redirect_uri=https://discord.gg/fqvQNDZYpj&response_type=code&scope=bot",
+    "bserver": "https://discord.gg/djrPQaczPw",
+    "bwebsite": "https://www.marvelbot.tk",
+    "bowner": [
+        "672027578181353473",
+        "631744856259297286",
+        "294468324115349505"
+    ],
+    "owner_profile": "https://discord.com/users/672027578181353473",
+    "owner_tag": "Damon 🖤#6667",
+    "announce": "945751976770162800",
+    "bvote": "https://top.gg/bot/748583869527097376/vote"
+}
