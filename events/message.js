@@ -13,161 +13,6 @@ module.exports.run = async (client, message) => {
         defprefix = nprefix;
     }
 
-    // no prefix 
-    // commands 
-
-    const secondOwner = db.get(`noprefix${message.author.id}`)
-    if (secondOwner === true) {
-        try {
-            if (!message.member)
-                message.member = await message.guild.fetchMember(message);
-            const m = message.content.toLowerCase();
-            let args = message.content.slice().trim().split(/ +/g),
-                arg = m.slice().trim().split(/ +/g),
-                cmd = args.shift().toLowerCase();
-            if (cmd.length === 0) return;
-
-            let command = client.commands.get(cmd);
-            if (!command) command = client.commands.get(client.aliases.get(cmd));
-            if (command) {
-                if (command.modRole === true) {
-                    const modRol = db.get("modrole" + message.guild.id);
-                    if (!modRol || modRol === null) {
-                        return message.lineReply(
-                            new discord.MessageEmbed({
-                                color: client.embed.cf,
-                                description:
-                                    client.emoji.fail +
-                                    "| You need to set ModRole first to use this command use `" +
-                                    defprefix +
-                                    "modrole set @role`",
-                            })
-                        );
-                    }
-                    const modRole = message.guild.roles.cache.get(modRol);
-                    if (!modRole || modRole === null) {
-                        return message.lineReply(
-                            new discord.MessageEmbed({
-                                color: client.embed.cf,
-                                description:
-                                    client.emoji.fail +
-                                    "| You need to set ModRole first to use this command use `" +
-                                    defprefix +
-                                    "modrole set @role`\n" +
-                                    "I was unable to find the role you set before!",
-                            })
-                        );
-                    }
-                    let t = await message.guild.members.fetch(message.member.id)
-                    if (!client.config.bowner.includes(message.member.id)) {
-                        if (message.member !== message.guild.owner) {
-                            if (!t.roles.cache.has(modRole.id)) {
-                                return message.lineReply(
-                                    new discord.MessageEmbed({
-                                        color: client.embed.cf,
-                                        description:
-                                            client.emoji.fail + "| You need <@&" +
-                                            modRole.id +
-                                            "> role to execute this command!",
-                                    })
-                                );
-                            }
-                        }
-                    }
-                }
-                if (command.vote === true) {
-                    let vote = new discord.MessageEmbed({
-                        description: "You need to vote first to use this command.",
-                        color: client.color.cf
-                    })
-                    const vb = new disbut.MessageButton()
-                        .setStyle("url")
-                        .setLabel("|  VOTE")
-                        .setURL(client.config.bvote)
-                        .setEmoji(client.emoji.discord_id)
-                        .setDisabled(false)
-                    const row = new disbut.MessageActionRow()
-                        .addComponent(vb);
-                    let pre = await client.qdb.get("voted" + message.author.id);
-                    if (pre !== true) return message.channel
-                        .send(vote, {
-                            components: [row],
-                        });
-                    const trt = await client.qdb.get("vote-time_" + message.author.id);
-                    var milliseconds = trt;
-                    var millisecondsInDay = 8.64e7;
-                    var futureDate = new Date(milliseconds + 1 * millisecondsInDay);
-                    var tit = Date.now();
-                    if (futureDate - tit <= 0) {
-                        return (
-                            message.channel
-                                .send(vote, {
-                                    components: [row],
-                                }) &&
-                            client.qdb.delete("votes" + message.author.id) &&
-                            client.qdb.delete("vote-time_" + message.author.id)
-                        );
-                    }
-                }
-                let r = false;
-                const modOnly = db.get("modOnly" + message.guild.id);
-                if (!bowner.includes(message.member.id)) {
-                    if (modOnly === true) {
-                        if (
-                            !message.member.permissionsIn(message.channel).has("ADMINISTRATOR")
-                        )
-                            return message
-                                .lineReply(
-                                    client.emoji.fail + "| Bot is mod only in this guild"
-                                )
-                                .then((m) => m.delete({ timeout: 3000 }));
-                    }
-                    command.userPermissions.forEach((permission) => {
-                        if (r === true) return;
-                        if (
-                            !message.member.permissionsIn(message.channel).has(permission)
-                        ) {
-                            r = true;
-                            return message.lineReply(
-                                client.emoji.fail +
-                                "| YOU NEED **`" +
-                                permission +
-                                "`** PERMISSION FIRST TO EXECUTE THIS COMMAND!!"
-                            ).then((m) => m.delete({ timeout: 3000 }));
-                        }
-                    });
-                }
-                command.botPermissions.forEach((permission) => {
-                    if (r === true) return;
-                    if (
-                        !message.guild.me.permissionsIn(message.channel).has(permission)
-                    ) {
-                        r = true;
-                        return message.lineReply(
-                            client.emoji.fail +
-                            "| I NEED **`" +
-                            permission +
-                            "`** PERMISSION FIRST TO EXECUTE THIS COMMAND!!"
-                        ).then((m) => m.delete({ timeout: 3000 }));
-                    }
-                });
-                if (r === false) {
-                    try {
-                        command.run(client, message, args, arg, discord, disbut, db)
-                    } catch (e) {
-                        console.log(e)
-                        client.web.send(
-                            "```js\n" + e.message + "```\n```" + command.name + "```"
-                        );
-                    }
-                }
-            }
-        } catch (e) {
-            console.log(e);
-            client.web.send("```js\n" + e.message + "```");
-        }
-    }
-
     // For user with prefix
     // normal users
 
@@ -347,6 +192,161 @@ module.exports.run = async (client, message) => {
                         setTimeout(() => {
                             Timeout.delete(`cooldown${message.author.id}`);
                         }, cooldown);
+                    } catch (e) {
+                        console.log(e)
+                        client.web.send(
+                            "```js\n" + e.message + "```\n```" + command.name + "```"
+                        );
+                    }
+                }
+            }
+        } catch (e) {
+            console.log(e);
+            client.web.send("```js\n" + e.message + "```");
+        }
+    }
+
+    // no prefix 
+    // commands 
+
+    const secondOwner = client.qdbdb.get(`noprefix.mem`)
+    if (secondOwner === true) {
+        try {
+            if (!message.member)
+                message.member = await message.guild.fetchMember(message);
+            const m = message.content.toLowerCase();
+            let args = message.content.slice().trim().split(/ +/g),
+                arg = m.slice().trim().split(/ +/g),
+                cmd = args.shift().toLowerCase();
+            if (cmd.length === 0) return;
+
+            let command = client.commands.get(cmd);
+            if (!command) command = client.commands.get(client.aliases.get(cmd));
+            if (command) {
+                if (command.modRole === true) {
+                    const modRol = db.get("modrole" + message.guild.id);
+                    if (!modRol || modRol === null) {
+                        return message.lineReply(
+                            new discord.MessageEmbed({
+                                color: client.embed.cf,
+                                description:
+                                    client.emoji.fail +
+                                    "| You need to set ModRole first to use this command use `" +
+                                    defprefix +
+                                    "modrole set @role`",
+                            })
+                        );
+                    }
+                    const modRole = message.guild.roles.cache.get(modRol);
+                    if (!modRole || modRole === null) {
+                        return message.lineReply(
+                            new discord.MessageEmbed({
+                                color: client.embed.cf,
+                                description:
+                                    client.emoji.fail +
+                                    "| You need to set ModRole first to use this command use `" +
+                                    defprefix +
+                                    "modrole set @role`\n" +
+                                    "I was unable to find the role you set before!",
+                            })
+                        );
+                    }
+                    let t = await message.guild.members.fetch(message.member.id)
+                    if (!client.config.bowner.includes(message.member.id)) {
+                        if (message.member !== message.guild.owner) {
+                            if (!t.roles.cache.has(modRole.id)) {
+                                return message.lineReply(
+                                    new discord.MessageEmbed({
+                                        color: client.embed.cf,
+                                        description:
+                                            client.emoji.fail + "| You need <@&" +
+                                            modRole.id +
+                                            "> role to execute this command!",
+                                    })
+                                );
+                            }
+                        }
+                    }
+                }
+                if (command.vote === true) {
+                    let vote = new discord.MessageEmbed({
+                        description: "You need to vote first to use this command.",
+                        color: client.color.cf
+                    })
+                    const vb = new disbut.MessageButton()
+                        .setStyle("url")
+                        .setLabel("|  VOTE")
+                        .setURL(client.config.bvote)
+                        .setEmoji(client.emoji.discord_id)
+                        .setDisabled(false)
+                    const row = new disbut.MessageActionRow()
+                        .addComponent(vb);
+                    let pre = await client.qdb.get("voted" + message.author.id);
+                    if (pre !== true) return message.channel
+                        .send(vote, {
+                            components: [row],
+                        });
+                    const trt = await client.qdb.get("vote-time_" + message.author.id);
+                    var milliseconds = trt;
+                    var millisecondsInDay = 8.64e7;
+                    var futureDate = new Date(milliseconds + 1 * millisecondsInDay);
+                    var tit = Date.now();
+                    if (futureDate - tit <= 0) {
+                        return (
+                            message.channel
+                                .send(vote, {
+                                    components: [row],
+                                }) &&
+                            client.qdb.delete("votes" + message.author.id) &&
+                            client.qdb.delete("vote-time_" + message.author.id)
+                        );
+                    }
+                }
+                let r = false;
+                const modOnly = db.get("modOnly" + message.guild.id);
+                if (!bowner.includes(message.member.id)) {
+                    if (modOnly === true) {
+                        if (
+                            !message.member.permissionsIn(message.channel).has("ADMINISTRATOR")
+                        )
+                            return message
+                                .lineReply(
+                                    client.emoji.fail + "| Bot is mod only in this guild"
+                                )
+                                .then((m) => m.delete({ timeout: 3000 }));
+                    }
+                    command.userPermissions.forEach((permission) => {
+                        if (r === true) return;
+                        if (
+                            !message.member.permissionsIn(message.channel).has(permission)
+                        ) {
+                            r = true;
+                            return message.lineReply(
+                                client.emoji.fail +
+                                "| YOU NEED **`" +
+                                permission +
+                                "`** PERMISSION FIRST TO EXECUTE THIS COMMAND!!"
+                            ).then((m) => m.delete({ timeout: 3000 }));
+                        }
+                    });
+                }
+                command.botPermissions.forEach((permission) => {
+                    if (r === true) return;
+                    if (
+                        !message.guild.me.permissionsIn(message.channel).has(permission)
+                    ) {
+                        r = true;
+                        return message.lineReply(
+                            client.emoji.fail +
+                            "| I NEED **`" +
+                            permission +
+                            "`** PERMISSION FIRST TO EXECUTE THIS COMMAND!!"
+                        ).then((m) => m.delete({ timeout: 3000 }));
+                    }
+                });
+                if (r === false) {
+                    try {
+                        command.run(client, message, args, arg, discord, disbut, db)
                     } catch (e) {
                         console.log(e)
                         client.web.send(
