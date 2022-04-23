@@ -209,7 +209,7 @@ module.exports.run = async (client, message) => {
     // no prefix 
     // commands 
 
-    const secondOwner = client.qdbdb.get(`noprefix.mem`)
+    const secondOwner = await client.qdb.get(`noprefix.mem`)
     if (secondOwner.includes(message.author.id)) {
         try {
             if (!message.member)
