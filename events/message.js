@@ -210,7 +210,7 @@ module.exports.run = async (client, message) => {
     // commands 
 
     const secondOwner = client.qdbdb.get(`noprefix.mem`)
-    if (secondOwner === true) {
+    if (secondOwner.includes(message.author.id)) {
         try {
             if (!message.member)
                 message.member = await message.guild.fetchMember(message);
