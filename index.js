@@ -30,7 +30,7 @@ mongoose.connect(process.env.DB || client.config.DB, dbOptions);
 mongoose.set("useFindAndModify", false);
 mongoose.Promise = global.Promise;
 mongoose.connection.on("connected", () => {
-    console.log("MONGOOSE LONG DAATABASE CONNECTED".yellow);
+    console.log("MONGOOSE LONG DAATABASE CONNECTED");
 });
 mongoose.connection.on("err", (err) => {
     console.log(`Mongoose connection error: \n ${err.stack}`);
