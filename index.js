@@ -16,12 +16,34 @@ client.color = require("./json/embed.json");
 client.config = require("./config.json");
 client.web = web;
 client.snipes = new Collection();
+const mongoose = require("mongoose");
 
+const dbOptions = {
+    useNewUrlParser: true,
+    autoIndex: false,
+    poolSize: 5,
+    connectTimeoutMS: 10000,
+    family: 4,
+    useUnifiedTopology: true,
+};
+mongoose.connect(process.env.DB || client.config.DB, dbOptions);
+mongoose.set("useFindAndModify", false);
+mongoose.Promise = global.Promise;
+mongoose.connection.on("connected", () => {
+    console.log("MONGOOSE LONG DAATABASE CONNECTED".yellow);
+});
+mongoose.connection.on("err", (err) => {
+    console.log(`Mongoose connection error: \n ${err.stack}`);
+});
+mongoose.connection.on("disconnected", () => {
+    console.log("Mongoose disconnected");
+});
 const { Database } = require("quickmongo");
 client.qdb = new Database(process.env.DB || client.config.DB);
 client.qdb.on("ready", () => {
     console.log("[DB] QUICK CONNECTED");
 });
+client.prefixModel = require('./models/prefixes.js');
 
 require('events').EventEmitter.defaultMaxListeners = 100;
 process.setMaxListeners(100);

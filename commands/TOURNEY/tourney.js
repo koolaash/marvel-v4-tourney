@@ -17,11 +17,15 @@ module.exports = {
 
   run: async (client, message, args) => {
     let defprefix = pprefix;
-    const nprefix = db.get(`guildPrefix_${message.guild.id}`);
-    if (nprefix !== null) {
-      defprefix = nprefix;
+    const prefixModel = client.prefixModel,
+      prefixData = await prefixModel.findOne({
+        GuildID: message.guild.id,
+      }).catch(err => console.log(err))
+    if (prefixData) {
+      var prefix = prefixData.Prefix
+    } else if (!prefixData) {
+      prefix = client.config.prefix
     }
-    let prefix = defprefix
 
     const tid = db.get("tourney_" + message.guild.id),
       active = db.get("tourneys.tourney" + message.guild.id),
@@ -260,7 +264,7 @@ module.exports = {
         }
       );
       let m = await message.channel.send(client.emoji.loop + "| " + "Setting Up Everything...");
-      setTimeout(function() {
+      setTimeout(function () {
         const tidd = db.get("tourney_" + message.guild.id);
         db.set("t" + tidd + message.guild.id, true);
         return (
@@ -598,7 +602,7 @@ module.exports = {
           chan = db.get("regchan" + tidd + message.guild.id),
           acts = db.get("tourneys.tourney" + message.guild.id),
           valueToRemove = args[1],
-          filteredItems = acts.filter(function(item) {
+          filteredItems = acts.filter(function (item) {
             return item !== valueToRemove;
           });
         db.delete(`tourneys${message.guild.id}`) &

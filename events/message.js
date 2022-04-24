@@ -6,11 +6,14 @@ const discord = require("discord.js"),
 
 module.exports.run = async (client, message) => {
     if (message.author.bot || !message.guild) return;
-    let defprefix = client.config.pprefix,
-        { bowner } = client.config,
-        nprefix = await client.qdb.get(`guildPrefix_${message.guild.id}`);
-    if (nprefix !== null) {
-        defprefix = nprefix;
+    let { bowner } = client.config, prefixModel = client.prefixModel,
+        prefixData = await prefixModel.findOne({
+            GuildID: message.guild.id,
+        }).catch(err => console.log(err))
+    if (prefixData) {
+        var defprefix = prefixData.Prefix
+    } else if (!prefixData) {
+        defprefix = client.config.prefix
     }
 
     // For user with prefix

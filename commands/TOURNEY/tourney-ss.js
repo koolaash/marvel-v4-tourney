@@ -19,11 +19,15 @@ module.exports = {
 
   run: async (client, message, args) => {
     let defprefix = pprefix;
-    const nprefix = db.get(`guildPrefix_${message.guild.id}`);
-    if (nprefix !== null) {
-      defprefix = nprefix;
+    const prefixModel = client.prefixModel,
+      prefixData = await prefixModel.findOne({
+        GuildID: message.guild.id,
+      }).catch(err => console.log(err))
+    if (prefixData) {
+      var prefix = prefixData.Prefix
+    } else if (!prefixData) {
+      prefix = client.config.prefix
     }
-    let prefix = defprefix
 
     const tid = db.get("tourney_" + message.guild.id),
       active = db.get("tourneys.tourney" + message.guild.id),
