@@ -18,7 +18,6 @@ module.exports = {
   vote: true,
 
   run: async (client, message, args) => {
-    let defprefix = pprefix;
     const prefixModel = client.prefixModel,
       prefixData = await prefixModel.findOne({
         GuildID: message.guild.id,
@@ -26,7 +25,7 @@ module.exports = {
     if (prefixData) {
       var prefix = prefixData.Prefix
     } else if (!prefixData) {
-      prefix = client.config.prefix
+      prefix = client.config.pprefix
     }
 
     const tid = db.get("tourney_" + message.guild.id),

@@ -1,7 +1,7 @@
 {
     "TOKEN": "NzQ4NTgzODY5NTI3MDk3Mzc2.X0fjDg.Ht7prj1IRFne3oabF_2yrSmsY5E",
     "DB": "mongodb+srv://shadow:ilaaslm1655@sheddb.pmhuz.mongodb.net/shadow",
-    "pprefix": ",,",
+    "pprefix": "'",
     "status": "'help | @MARVEL",
     "type": "LISTENING",
     "binvite": "https://discord.com/oauth2/authorize?client_id=748583869527097376&permissions=8&redirect_uri=https://discord.gg/fqvQNDZYpj&response_type=code&scope=bot",
