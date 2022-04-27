@@ -23,6 +23,9 @@ module.exports = function (client) {
             sschan = db.get(`sschan${message.guild.id}${message.channel.id}`),
             modRole = db.get(`modRole${message.guild.id}`)
         try {
+            if (!message.member) {
+                message.member = await message.guild.fetchMember(message);
+            }
             if (chan === true) {
                 if (message.member.roles.cache.has(modRole)) return
                 const msize = db.get(`msize${message.guild.id}${message.channel.id}`),
