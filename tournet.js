@@ -24,7 +24,7 @@ module.exports = function (client) {
             modRole = db.get(`modRole${message.guild.id}`)
         try {
             if (!message.member) {
-                message.member = await message.guild.fetchMember(message);
+                message.member = await message.guild.fetchMember(message).catch(() => null);
             }
             if (chan === true) {
                 if (message.member.roles.cache.has(modRole)) return
